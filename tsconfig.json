@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"target": "es6",
+		"module": "commonjs",
+		"outDir": "tsbuild",
+		"sourceMap": true,
+		"strict": true,
+		"downlevelIteration": true
+	}
+}

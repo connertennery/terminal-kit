@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "tsc current file",
+			"command": "tsc ${file} --outdir node/tsbuild --sourceMap --strict",
+			"type": "shell",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		}
+	]
+}
