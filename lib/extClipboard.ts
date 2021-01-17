@@ -24,58 +24,47 @@
 	SOFTWARE.
 */
 
-"use strict" ;
+"use strict";
 
-
-
-const Promise = require( 'seventh' ) ;
-const string = require( 'string-kit' ) ;
-
-require( './patches.js' ) ;
-const execAsync = require( 'child_process' ).execAsync ;
-const execFileAsync = require( 'child_process' ).execFileAsync ;
-const spawn = require( 'child_process' ).spawn ;
-
-
+require('./patches.js');
+import { exec, execFile } from 'child_process';
+const spawn = require('child_process').spawn;
 
 const XCLIP_SELECTION_ARG = {
-	c: 'clipboard' ,
-	p: 'primary' ,
+	c: 'clipboard',
+	p: 'primary',
 	s: 'secondary'
-} ;
+};
 
+const throwNoClipboard = () => { throw new Error('No clipboard manipulation program found') };
 
+export const getClipboard = async (source: 'c' | 'p' | 's') => {
+	if (!(process.platform === 'linux')) throwNoClipboard();
 
-if ( process.platform === 'linux' ) {
-	exports.getClipboard = async ( source ) => {
-		var arg = XCLIP_SELECTION_ARG[ source[ 0 ] ] || 'clipboard' ;
-		return await execFileAsync( 'xclip' , [ '-o' , '-selection' , arg ] ) ;
-	} ;
+	var arg = XCLIP_SELECTION_ARG[source] || 'clipboard';
+	return await execFile('xclip', ['-o', '-selection', arg]);
+};
 
-	exports.setClipboard = async ( str , source ) => {
-		var promise = new Promise() ;
-		var arg = XCLIP_SELECTION_ARG[ source[ 0 ] ] || 'clipboard' ;
-		var xclip = spawn( 'xclip' , [ '-i' , '-selection' , arg ] ) ;
+exports.setClipboard = async (str: string, source: 'c' | 'p' | 's') => {
+	if (!(process.platform === 'linux')) throwNoClipboard();
 
-		xclip.on( 'error' , error => {
-			//console.error( 'xclip error:' , error ) ;
-			promise.reject( error ) ;
-		} ) ;
+	var arg = XCLIP_SELECTION_ARG[source] || 'clipboard';
+	var xclip = spawn('xclip', ['-i', '-selection', arg]);
 
-		xclip.on( 'exit' , code => {
-			//console.log( 'xclip exited with code:' , code ) ;
-			if ( code !== 0 ) { promise.reject( code ) ; }
-			else { promise.resolve() ; }
-		} ) ;
+	xclip.on('error', (error: Error) => {
+		throw error;
+	});
 
-		// Send the string to push to the clipboard
-		xclip.stdin.end( str ) ;
+	xclip.on('exit', (code: number) => {
+		if (code !== 0) {
+			throw code;
+		}
+		else {
+			return;
+		}
+	});
 
-		return promise ;
-	} ;
-}
-else {
-	exports.getClipboard = () => Promise.reject( new Error( 'No clipboard manipulation program found' ) ) ;
-	exports.setClipboard = () => Promise.reject( new Error( 'No clipboard manipulation program found' ) ) ;
-}
+	// Send the string to push to the clipboard
+	xclip.stdin.end(str);
+};
 
