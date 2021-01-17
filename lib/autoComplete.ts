@@ -25,42 +25,40 @@
 */
 
 "use strict";
-
-
-
 /*
 	Ideally, this should be done using a graph algorithm, but we will just brute-force it for instance...
 */
 
 export const autoComplete = (array: string[], startString: string, returnAlternatives: boolean, prefix: string, postfix: string) => {
-	var i, j, exitLoop, completed = startString, hasCompleted = false;
-	let candidate: string[] & { prefix?: string, postfix?: string } = []
+	let completed = startString;
+	let hasCompleted = false;
+	let candidate: string[] & { prefix?: string, postfix?: string } = [];
+
 	if (!prefix) { prefix = ''; }
 	if (!postfix) { postfix = ''; }
 
-	for (i = 0; i < array.length; i++) {
+	for (let i = 0; i < array.length; i++) {
 		if (array[i].slice(0, startString.length) === startString) { candidate.push(array[i]); }
 	}
 
-	if (!candidate.length) { return prefix + completed + postfix; }
+	if (!candidate.length) {
+		return prefix + completed + postfix;
+	}
 
-	if (candidate.length === 1) { return prefix + candidate[0] + postfix; }
-
+	if (candidate.length === 1) {
+		return prefix + candidate[0] + postfix;
+	}
 
 	// Multiple candidate, complete only the part they have in common
-
-	j = startString.length;
-
-	exitLoop = false;
-
-	for (j = startString.length; j < candidate[0].length; j++) {
-		for (i = 1; i < candidate.length; i++) {
-			if (candidate[i][j] !== candidate[0][j]) { exitLoop = true; break; }
+	let exitLoop = false;
+	for (let startLength = startString.length; startLength < candidate[0].length; startLength++) {
+		for (let i = 1; i < candidate.length; i++) {
+			if (candidate[i][startLength] !== candidate[0][startLength]) { exitLoop = true; break; }
 		}
 
 		if (exitLoop) { break; }
 
-		completed += candidate[0][j];
+		completed += candidate[0][startLength];
 		hasCompleted = true;
 	}
 
