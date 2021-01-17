@@ -37,7 +37,7 @@ const ENLARGING_BLOCK = [ ' ' , '▏' , '▎' , '▍' , '▌' , '▋' , '▊' , 
 
 
 
-module.exports = {
+export const spChars = {
 	password: '●' ,		// Currently: the same as blackCircle
 
 	forwardSingleQuote: '´' ,	// Altgr + ,
