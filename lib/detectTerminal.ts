@@ -26,25 +26,33 @@
 
 "use strict";
 
-
-
-const Seventh = require('seventh');
-const exec = require('child_process').exec;
-const path = require('path');
-const os = require('os');
+import { exec } from 'child_process';
+import * as path from 'path';
+import * as os from 'os';
 
 const termkit = require('./termkit.js');
 
+
+
+
+export type GuessTerminalInfo = {
+	isTTY: boolean,
+	isSSH: boolean,
+	appId: string,
+	safe: boolean,
+	generic: string
+};
 
 /**
  * Try to guess the terminal without any async system call, using TERM and COLORTERM. Argument 'unpipe' is used when we will get a TTY even if we haven't one ATM.
  * @param unpipe
  */
-export const guessTerminal = function (unpipe: boolean) {
-	var envVar, version;
+export const guessTerminal = function (unpipe: boolean): GuessTerminalInfo {
+	let envVar;
+	let version;
 
-	var isSSH = !!process.env.SSH_CONNECTION;
-	var isTTY = !!process.stdout.isTTY;
+	const isSSH = !!process.env.SSH_CONNECTION;
+	const isTTY = !!process.stdout.isTTY;
 
 	if (!isTTY && !unpipe) {
 		return {
@@ -56,24 +64,22 @@ export const guessTerminal = function (unpipe: boolean) {
 		};
 	}
 
-	var platform = os.platform();
-	var t256color = (process.env.TERM && process.env.TERM.match(/256/)) ||
+	const platform = os.platform();
+	const t256color = (process.env.TERM && process.env.TERM.match(/256/)) ||
 		(process.env.COLORTERM && process.env.COLORTERM.match(/256/));
-	var tTrueColor = process.env.COLORTERM && process.env.COLORTERM.match(/^(truecolor|24bits?)$/);
+	const tTrueColor = process.env.COLORTERM && process.env.COLORTERM.match(/^(truecolor|24bits?)$/);
 
-	var appId =
-		process.env.COLORTERM && !tTrueColor ? process.env.COLORTERM :
-			process.env.TERM_PROGRAM ? process.env.TERM_PROGRAM :
-				process.env.TERM;
+	let appId = process.env.COLORTERM && !tTrueColor ? process.env.COLORTERM :
+		process.env.TERM_PROGRAM ? process.env.TERM_PROGRAM : process.env.TERM;
+
+	appId = appId || 'unknown';
 
 	if (platform === 'darwin') { appId = path.parse(appId).name; }
 
 	// safe is true if we are sure about our guess
-	var safe =
-		appId !== process.env.TERM
-		|| (process.env.TERM && process.env.TERM !== 'xterm' && process.env.TERM !== 'xterm-256color');
+	let safe = ((appId !== process.env.TERM) || (process.env.TERM !== undefined && process.env.TERM !== 'xterm' && process.env.TERM !== 'xterm-256color'));
 
-	var generic = appId;
+	let generic = appId;
 
 	switch (appId) {
 		case 'xterm':
@@ -182,13 +188,21 @@ export const guessTerminal = function (unpipe: boolean) {
 	}
 
 	return {
-		isTTY, isSSH, appId, safe, generic: safe ? appId : generic
+		isTTY,
+		isSSH,
+		appId,
+		safe,
+		generic: safe ? appId : generic
 	};
 };
 
 
+export type ParentProcessInfo = {
+	pid: number,
+	appName: string
+}
 
-export const getParentProcess = (pid: number): Promise<{ pid: number, appName: string }> => {
+export const getParentProcess = (pid: number): Promise<ParentProcessInfo> => {
 	var parentPid: number, appName;
 
 	return new Promise((resolve, reject) => {
@@ -213,17 +227,24 @@ export const getParentProcess = (pid: number): Promise<{ pid: number, appName: s
 
 
 
-/**
- * Works locally, does not work over SSH
- * @param callback
- */
-export const getParentTerminalInfo = async function (callback: (error: Error | undefined, result?: {
+export type ParentTerminalInfo = {
 	appId: string,
 	appName: string,
 	pid: number,
 	safe: boolean
-}) => any) {
-	var loopAgain, error, appName, appNames = [], appId, pid = process.pid;
+}
+
+/**
+ * Works locally, does not work over SSH
+ * @param callback
+ */
+export const getParentTerminalInfo = async function (callback: (error: Error | undefined, result?: ParentTerminalInfo) => any) {
+	let loopAgain;
+	let error;
+	let appName = 'unknown';
+	let appNames = [];
+	let appId = 'unknown';
+	let pid = process.pid;
 
 	if (process.env.SSH_CONNECTION) {
 		error = new Error('SSH connection detected, .getParentTerminalInfo() is useless in this context.');
@@ -231,10 +252,10 @@ export const getParentTerminalInfo = async function (callback: (error: Error | u
 		throw error;
 	}
 
-	var platform = os.platform();
-	var t256color = (process.env.TERM && process.env.TERM.match(/256/)) ||
+	const platform = os.platform();
+	const t256color = (process.env.TERM && process.env.TERM.match(/256/)) ||
 		(process.env.COLORTERM && process.env.COLORTERM.match(/256/));
-	var tTrueColor = process.env.COLORTERM && process.env.COLORTERM.match(/^(truecolor|24bits?)$/);
+	const tTrueColor = process.env.COLORTERM && process.env.COLORTERM.match(/^(truecolor|24bits?)$/);
 
 	try {
 		loopAgain = true;
@@ -333,7 +354,7 @@ export const getParentTerminalInfo = async function (callback: (error: Error | u
 		throw error_;
 	}
 
-	var result = {
+	const result = {
 		appId: appId,
 		appName: appName,
 		pid: pid,
@@ -352,8 +373,9 @@ export const getParentTerminalInfo = async function (callback: (error: Error | u
  * @param callback
  */
 export const getDetectedTerminal = async function (callback: (nothing: undefined, terminal: any) => any) {
-	var terminal, info,
-		guessed = termkit.guessTerminal();
+	let terminal;
+	let info;
+	let guessed = termkit.guessTerminal();
 
 	if (guessed.safe || guessed.isSSH) {
 		// If we have a good guess, use it now
