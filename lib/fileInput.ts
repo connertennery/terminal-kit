@@ -24,148 +24,137 @@
 	SOFTWARE.
 */
 
-"use strict" ;
+"use strict";
 
-
-
-var Promise = require( 'seventh' ) ;
-var autoComplete = require( './autoComplete.js' ) ;
-var fs = require( 'fs' ) ;
-var path = require( 'path' ) ;
+import { autoComplete } from './autoComplete.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 
 
 /*
 	/!\ Document that!!! /!\
 */
-module.exports = function fileInput( options , callback ) {
-	if ( typeof options === 'function' ) { callback = options ; options = {} ; }
-	if ( ! options || typeof options !== 'object' ) { options = {} ; }
+export const fileInput = async (options: { baseDir?: string } = {}, callback?: Function) => {
+	let baseDir: string;
 
-	var baseDir ;
+	if (options.baseDir) {
+		baseDir = path.resolve(options.baseDir);
 
-	var promise = new Promise() ;
-
-	if ( options.baseDir ) {
-		baseDir = path.resolve( options.baseDir ) ;
-
-		if ( ! path.isAbsolute( baseDir ) ) {
-			fs.realpath( options.baseDir , ( error , resolvedPath ) => {
-				if ( error ) {
-					if ( callback ) { callback( error ) ; }
-					else { promise.reject( error ) ; }
-					return ;
+		if (!path.isAbsolute(baseDir)) {
+			fs.realpath(options.baseDir, (error, resolvedPath) => {
+				if (error) {
+					if (callback) { callback(error); }
+					else { throw error; }
+					return;
 				}
 
-				options.baseDir = resolvedPath ;
+				options.baseDir = resolvedPath;
 
-				this.fileInput( options ).then(
-					input => {
-						if ( callback ) { callback( input ) ; }
-						else { promise.resolve( input ) ; }
-					} ,
-					error_ => {
-						if ( callback ) { callback( error_ ) ; }
-						else { promise.reject( error_ ) ; }
+				fileInput(options).then(
+					(input: any) => {
+						if (callback) { callback(input); }
+						else { return input; }
+					},
+					(error_: Error) => {
+						if (callback) { callback(error_); }
+						else { throw error_; }
 					}
-				) ;
-			} ) ;
-
-			return promise ;
+				);
+			});
 		}
 	}
 	else {
-		baseDir = process.cwd() ;
+		baseDir = process.cwd();
 	}
 
-	if ( baseDir[ baseDir.length - 1 ] !== '/' ) { baseDir += '/' ; }
+	if (baseDir[baseDir.length - 1] !== '/') { baseDir += '/'; }
 
-	var autoCompleter = async function autoCompleter( inputString ) {
-		var inputDir , inputFile , currentDir , files , completion ;
+	const autoCompleter = async function autoCompleter(inputString: string) {
+		var inputDir, inputFile, currentDir, files, completion;
 
-		if ( inputString[ inputString.length - 1 ] === '/' ) {
-			inputDir = inputString ;
-			inputFile = '' ;
+		if (inputString[inputString.length - 1] === '/') {
+			inputDir = inputString;
+			inputFile = '';
 		}
 		else {
-			inputDir = path.dirname( inputString ) ;
-			inputDir = inputDir === '.' ? '' : inputDir + '/' ;
-			inputFile = path.basename( inputString ) ;
+			inputDir = path.dirname(inputString);
+			inputDir = inputDir === '.' ? '' : inputDir + '/';
+			inputFile = path.basename(inputString);
 		}
 
 
 		// If the input start with a '/', then forget about the baseDir
-		if ( path.isAbsolute( inputString ) ) { currentDir = inputDir ; }
-		else { currentDir = baseDir + inputDir ; }
+		if (path.isAbsolute(inputString)) { currentDir = inputDir; }
+		else { currentDir = baseDir + inputDir; }
 
 
 		//console.error( "### '" + inputDir +"' '"+ inputFile +"' '"+ currentDir + "'" ) ;
 		try {
-			files = await readdir( currentDir ) ;
+			files = await readdir(currentDir);
 		}
-		catch ( error ) {
-			return inputString ;
+		catch (error) {
+			return inputString;
 		}
 
-		if ( ! Array.isArray( files ) || ! files.length ) { return inputString ; }
+		if (!Array.isArray(files) || !files.length) { return inputString; }
 
-		completion = autoComplete( files , inputFile , true ) ;
+		completion = autoComplete(files, inputFile, true);
 
 		// force inputField() to prefix that *AFTER* singleLineMenu()
-		if ( Array.isArray( completion ) ) { completion.prefix = inputDir ;	}
-		else { completion = path.normalize( inputDir + completion ) ; }
+		if (Array.isArray(completion)) { completion.prefix = inputDir; }
+		else { completion = path.normalize(inputDir + completion); }
 
-		return completion ;
-	} ;
+		return completion;
+	};
 
 	// Transmit options to inputField()
-	options = Object.assign( {} , options , { autoComplete: autoCompleter , autoCompleteMenu: true , minLength: 1 } ) ;
+	const inputOptions = Object.assign({}, options, { autoComplete: autoCompleter, autoCompleteMenu: true, minLength: 1 });
 
-	this.inputField( options ).promise.then(
-		input => {
-			if ( ! input && typeof input !== 'string' ) {
-				input = undefined ;
+	inputField(inputOptions).promise.then(
+		(input: any) => {
+			if (!input && typeof input !== 'string') {
+				input = undefined;
 			}
 			else {
-				input = path.resolve( path.isAbsolute( input ) ? input : baseDir + input ) ;
+				input = path.resolve(path.isAbsolute(input) ? input : baseDir + input);
 			}
 
-			if ( callback ) { callback( undefined , input ) ; }
-			else { promise.resolve( input ) ; }
-		} ,
-		error => {
-			if ( callback ) { callback( error ) ; }
-			else { promise.reject( error ) ; }
+			if (callback) { callback(undefined, input); }
+			else { return input; }
+		},
+		(error: Error) => {
+			if (callback) { callback(error); }
+			else { throw error; }
 		}
-	) ;
-
-	return promise ;
-} ;
+	);
+};
 
 
 
 // Like fs.readdir(), but performs fs.stat() for each file in order to add a '/' to directories
-function readdir( dir ) {
-	var promise = new Promise() ;
+export const readdir = async (dir: string) => {
 
-	if ( dir[ dir.length - 1 ] !== '/' ) { dir += '/' ; }
+	if (dir[dir.length - 1] !== '/') { dir += '/'; }
 
-	fs.readdir( dir , ( error , files ) => {
+	fs.readdir(dir, (error, files) => {
 
-		if ( error ) { promise.reject( error ) ; return ; }
+		if (error) { throw error }
 
-		Promise.map( files , file => {
-			return new Promise( ( resolve , reject ) => {
-				fs.lstat( dir + file , ( error_ , stats ) => {
-					if ( error_ ) { reject( error_ ) ; return ; }
-					if ( stats.isDirectory() ) { file += '/' ; }
-					resolve( file ) ;
-				} ) ;
-			} ) ;
-		} )
-			.toPromise( promise ) ;
-	} ) ;
+		const promises: Promise<any>[] = [];
+		files.forEach((file: string) => {
+			const promise = new Promise((resolve, reject): any => {
+				fs.lstat(dir + file, (error_, stats) => {
+					if (error_) { reject(error_); return; }
+					if (stats.isDirectory()) { file += '/'; }
+					resolve(file);
+				});
+				return;
+			});
+			promises.push(promise);
+		});
 
-	return promise ;
+		return Promise.all(promises);
+	});
 }
 
