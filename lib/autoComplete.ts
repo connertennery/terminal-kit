@@ -24,7 +24,7 @@
 	SOFTWARE.
 */
 
-"use strict" ;
+"use strict";
 
 
 
@@ -32,44 +32,44 @@
 	Ideally, this should be done using a graph algorithm, but we will just brute-force it for instance...
 */
 
-module.exports = function autoComplete( array , startString , returnAlternatives , prefix , postfix ) {
-	var i , j , exitLoop , candidate = [] , completed = startString , hasCompleted = false ;
+export const autoComplete = (array: string[], startString: string, returnAlternatives: boolean, prefix: string, postfix: string) => {
+	var i, j, exitLoop, completed = startString, hasCompleted = false;
+	let candidate: string[] & { prefix?: string, postfix?: string } = []
+	if (!prefix) { prefix = ''; }
+	if (!postfix) { postfix = ''; }
 
-	if ( ! prefix ) { prefix = '' ; }
-	if ( ! postfix ) { postfix = '' ; }
-
-	for ( i = 0 ; i < array.length ; i ++ ) {
-		if ( array[ i ].slice( 0 , startString.length ) === startString ) { candidate.push( array[ i ] ) ; }
+	for (i = 0; i < array.length; i++) {
+		if (array[i].slice(0, startString.length) === startString) { candidate.push(array[i]); }
 	}
 
-	if ( ! candidate.length ) { return prefix + completed + postfix ; }
+	if (!candidate.length) { return prefix + completed + postfix; }
 
-	if ( candidate.length === 1 ) { return prefix + candidate[ 0 ] + postfix ; }
+	if (candidate.length === 1) { return prefix + candidate[0] + postfix; }
 
 
 	// Multiple candidate, complete only the part they have in common
 
-	j = startString.length ;
+	j = startString.length;
 
-	exitLoop = false ;
+	exitLoop = false;
 
-	for ( j = startString.length ; j < candidate[ 0 ].length ; j ++ ) {
-		for ( i = 1 ; i < candidate.length ; i ++ ) {
-			if ( candidate[ i ][ j ] !== candidate[ 0 ][ j ] ) { exitLoop = true ; break ; }
+	for (j = startString.length; j < candidate[0].length; j++) {
+		for (i = 1; i < candidate.length; i++) {
+			if (candidate[i][j] !== candidate[0][j]) { exitLoop = true; break; }
 		}
 
-		if ( exitLoop ) { break ; }
+		if (exitLoop) { break; }
 
-		completed += candidate[ 0 ][ j ] ;
-		hasCompleted = true ;
+		completed += candidate[0][j];
+		hasCompleted = true;
 	}
 
-	if ( returnAlternatives && ! hasCompleted ) {
-		candidate.prefix = prefix ;
-		candidate.postfix = postfix ;
-		return candidate ;
+	if (returnAlternatives && !hasCompleted) {
+		candidate.prefix = prefix;
+		candidate.postfix = postfix;
+		return candidate;
 	}
 
-	return prefix + completed + postfix ;
-} ;
+	return prefix + completed + postfix;
+};
 
