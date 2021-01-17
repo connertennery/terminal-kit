@@ -29,13 +29,10 @@
 	Ideally, this should be done using a graph algorithm, but we will just brute-force it for instance...
 */
 
-export const autoComplete = (array: string[], startString: string, returnAlternatives: boolean, prefix: string, postfix: string) => {
+export const autoComplete = (array: string[], startString: string, returnAlternatives: boolean, prefix: string = '', postfix: string = '') => {
 	let completed = startString;
 	let hasCompleted = false;
 	let candidate: string[] & { prefix?: string, postfix?: string } = [];
-
-	if (!prefix) { prefix = ''; }
-	if (!postfix) { postfix = ''; }
 
 	for (let i = 0; i < array.length; i++) {
 		if (array[i].slice(0, startString.length) === startString) { candidate.push(array[i]); }
